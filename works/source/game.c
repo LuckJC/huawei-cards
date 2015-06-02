@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-#define DEBUG
+#define xDEBUG
 
 #ifdef  DEBUG
  #define PRINT(log, args...)	do{fprintf(stdout, log, ##args);}while(0)
@@ -626,8 +626,7 @@ int do_msg(char *args[], int nargs)
 		*/
 		players.win_count = nargs - 2;
 		for(i = 0; i < nargs - 2; i++)
-			sscanf(args[i + 1], "%d %d ", players.winer[i].pid, players.winer[i].bet);
-		;
+			sscanf(args[i + 1], "%d: %d ", &players.winer[i].pid, &players.winer[i].bet);
 	}
 	//update_screen();
 	//sleep(1);
