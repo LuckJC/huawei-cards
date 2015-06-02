@@ -10,13 +10,19 @@
 #include <pthread.h>
 #include <errno.h>
 
-#define PRINT(log, args...)	do{fprintf(stdout, log, ##args);}while(0)
+#define DEBUG
+
+#ifdef  DEBUG
+ #define PRINT(log, args...)	do{fprintf(stdout, log, ##args);}while(0)
+#else    
+ #define PRINT(log, args...)
+#endif
 
 #define SERV_PORT 			6000
 #define PLAYER_NAME 		"Jovec"
-#define MAXLINE				1024
-#define MAXOFFSET			1024
-#define PARSER_MAXARGS	100
+#define MAXLINE				2048
+#define MAXOFFSET			2048
+#define PARSER_MAXARGS	200
 #define MAX_PNAME_SIZE		20
 
 #define K_UNKNOWN		0x00
@@ -36,11 +42,10 @@
 #define K_river			0x08
 #define K_river_e			0x88
 
-
-
 char buffer[MAXLINE * 2];
 pthread_t read_pid;
 int client_fd;
+int my_pid;;
 
 typedef struct
 {
@@ -94,37 +99,53 @@ void do_action(int fd)
 	int num;
 	char ch;
 	char act_str[20];
+	int i;
+
+	for(i = 0; i < players.count; i++)
+	{
+		//players.member;
+	}
 	
-	printf("\33[K1.check | 2.call | 3.raise num | 4.all_in | 5.fold\n");
+	printf("1.check | 2.call | 3.raise num | 4.all_in | 5.fold\n");
 	//check | call | raise num | all_in | fold eol
 
-	printf("Action:\33[K");
-	printf("\33[?25h");
+	printf("Action: \33[K");
 	fflush(stdout);
 	
-	scanf("%s", act_str);
+	//scanf("%[^\n]", act_str);
+	fgets(act_str, sizeof(act_str), stdin);
 	ch = act_str[0];
-	//printf("input:%s\n", act_str);
+	//PRINT("input:%s\n", act_str);
+
 
 	if(ch == '1')
+	{
 		strcpy(buffer, "check \n");
+		PRINT("Send> %s", buffer);
+	}
 	else if(ch == '2')
+	{
 		strcpy(buffer, "call \n");
+		PRINT("Send> %s", buffer);
+	}
 	else if(ch == '3')
 	{
 		sscanf(act_str, "3 %d\n", &num);
 		sprintf(buffer, "raise %d \n", num);
+		PRINT("Send> %s", buffer);
 	}
 	else if(ch == '4')
+	{
 		strcpy(buffer, "all_in \n");
+		PRINT("Send> %s", buffer);
+	}
 	else if(ch == '5')
+	{
 		strcpy(buffer, "fold \n");
+		PRINT("Send> %s", buffer);
+	}
 
 	write(fd, buffer, strlen(buffer) + 1);
-
-	//printf("\033[?25l");
-	//printf("\33[K\033[1A");
-	//printf("\33[K\033[1A");
 	
 	fflush(stdout);
 }
@@ -134,7 +155,6 @@ void update_screen()
 	int i = 0;
 
 	//printf("\033[?25l\033[0;0H");
-	
 	
 	//system("clear");
 	PRINT_HEAD();
@@ -172,7 +192,7 @@ void update_screen()
 		players.pub_cards[4].color,
 		players.pub_cards[4].point);
 
-	if(players.out_count > 0)
+	if(players.out_count > 0)
 	{
 		printf("\033[%dB", players.out_count);
 		for(i = 0; i < players.out_count; i++)
@@ -215,19 +235,20 @@ int lookup_keyword(const char *s)
 
 int do_msg(char *args[], int nargs)
 {
-	int kw, kw2;
+	int kw;//, kw2;
 	int i;
 	
 	kw = lookup_keyword(args[0]);
-	kw2 = lookup_keyword(args[nargs -1]);
+	//kw2 = lookup_keyword(args[nargs -1]);
 
-	printf("---------kw  = %d------------\n", kw);
+	//PRINT("---------kw  = %d------------\n", kw);
 
-	if((kw |0x80) != kw2)
-		return -1;
+	/*if((kw |0x80) != kw2)
+		return -1;*/
 	
 	if(kw == K_seat)
 	{
+		PRINT("K_seat\n");
 		/*
 		seat/ eol
 		button: pid jetton money eol
@@ -290,10 +311,12 @@ int do_msg(char *args[], int nargs)
 	}
 	else if(kw == K_gameover)
 	{
+		PRINT("K_gameover\n");
 		exit(1);
 	}
 	else if(kw == K_blind)
 	{
+		PRINT("K_blind\n");
 		/*
 		blind/ eol
 		(pid: bet eol)1-2
@@ -326,6 +349,7 @@ int do_msg(char *args[], int nargs)
 	}
 	else if(kw == K_hold)
 	{
+		PRINT("K_hold\n");
 		/*
 		hold/ eol
 		color point eol
@@ -339,6 +363,7 @@ int do_msg(char *args[], int nargs)
 	}
 	else if(kw == K_inquire)
 	{
+		PRINT("K_inquire\n");
 		/*
 		inquire/ eol
 		(pid jetton money bet blind | check | call | raise | all_in | fold eol)1-8
@@ -348,19 +373,25 @@ int do_msg(char *args[], int nargs)
 		for(i = 0; i < nargs - 3; i++)
 		{
 			sscanf(args[i + 1], "%d %d %d %d %s", 
-								&players.member[i].pid, 
-								&players.member[i].jetton, 
-								&players.member[i].money,
-								&players.member[i].bet,
-								players.member[i].action);
+					&players.member[i].pid, 
+					&players.member[i].jetton, 
+					&players.member[i].money,
+					&players.member[i].bet,
+					players.member[i].action);
 		}
 		sscanf(args[i+1], "total pot: %d", &players.total_pot);
 		players.act =1;
-		return 1;
+		
+		/* check */
+		strcpy(buffer, "check \n");
+		//write(client_fd, buffer, strlen(buffer) + 1);
+		do_action(client_fd);
+		//return 1;
 		//update_screen();
 	}
 	else if(kw == K_flop)
 	{
+		PRINT("K_flop\n");
 		/*
 		flop/ eol
 		color point eol
@@ -374,6 +405,7 @@ int do_msg(char *args[], int nargs)
 	}
 	else if(kw == K_turn)
 	{
+		PRINT("K_turn\n");
 		/*
 		turn/ eol
 		color point eol
@@ -384,6 +416,7 @@ int do_msg(char *args[], int nargs)
 	}
 	else if(kw == K_river)
 	{
+		PRINT("K_river\n");
 		/*
 		river/ eol
 		color point eol
@@ -392,7 +425,7 @@ int do_msg(char *args[], int nargs)
 		sscanf(args[1], "%s %c", players.pub_cards[4].color, &players.pub_cards[4].point);
 		strcpy(players.roll, "river");
 	}
-	update_screen();
+	//update_screen();
 	//sleep(1);
 	return 0;
 }
@@ -434,8 +467,8 @@ int parse_msg(char *msg, int count)
 	if(*msg != '\0')
 	{
 		fragment = msg - args[nargs] + 1;
-		//printf("fragment2 = %d\n", fragment);
-		//printf("%s\n", args[nargs]);
+		//PRINT("fragment2 = %d\n", fragment);
+		//PRINT("%s\n", args[nargs]);
 		if(fragment > MAXOFFSET)
 			return -1;
 		memcpy(buffer - fragment, args[nargs], fragment);
@@ -445,9 +478,9 @@ int parse_msg(char *msg, int count)
 		fragment = 0;
 	}
 #if 1
-	printf("nargs = %d\n", nargs);
+	PRINT("nargs = %d\n", nargs);
 	for(i = 0; i < nargs; i++)
-		printf("%2d# %s\n", i, args[i]);
+		PRINT("%2d# %s\n", i, args[i]);
 	sleep(1);
 #endif
 
@@ -456,11 +489,15 @@ int parse_msg(char *msg, int count)
 		kw = lookup_keyword(args[i]);
 		if(kw == K_UNKNOWN)
 			continue;
+			
+		if(kw == K_gameover)
+			exit(0);
 
 		if(kw & 0x80)
 		{
 			tag_end = i;
-			printf("tag_start = %d, tag_end = %d\n", tag_start, tag_end);
+			PRINT("\n------------tag_start = %d------------\n" \
+			"%s\n------------tag_end = %d------------\n\n", tag_start, args[tag_start], tag_end);
 			do_msg(args + tag_start, tag_end - tag_start + 1);
 		}
 		else
@@ -547,7 +584,8 @@ int main(int argc, char **argv)
 	 * reg: pid pname need_notify eol
 	 */
 	//sprintf(buffer, "reg: %s %s need_notify \n", argv[5], PLAYER_NAME);
-	sprintf(buffer, "reg: %s %s \n", argv[5], PLAYER_NAME);
+	my_pid = atoi(argv[5]);
+	sprintf(buffer, "reg: %d %s \n", my_pid, PLAYER_NAME);
 	res = write(client_fd, buffer, strlen(buffer) + 1);
 	if(res < 0)
 		error_quit("write");	

@@ -50,7 +50,7 @@ do
   export "PLAYER"$i"_ID"=$i$i$i$i
 done
 export 
-nohup ./gameserver -gip 127.0.0.1 -seq replay -r 3 -d 1 -m 10000 -b 50 -t 2000 -h 500 0</dev/null 1>/dev/null 2>/dev/null  & 
+nohup ./gameserver -gip 127.0.0.1 -seq replay -d 1 -m 10000 -b 50 -t 2000 -h 500 0</dev/null 1>/dev/null 2>/dev/null  & 
 popd >/dev/null
 
 echo "start your program"
@@ -64,6 +64,7 @@ popd >/dev/null
 
 popd >/dev/null
 
-
-/home/huangchao/game/works/target/game 127.0.0.1 6000 127.0.0.8 6008 8888
-
+pushd . > /dev/null
+cd works/target
+./game 127.0.0.1 6000 127.0.0.8 6008 8888
+popd . > /dev/null
